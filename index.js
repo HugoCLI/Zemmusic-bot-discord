@@ -17,6 +17,22 @@ const rest = new REST({version: '9'}).setToken(config.token);
 for (let i = 0; i < 200; i++) console.log(' ');
 console.log(chalk.cyan('Starting'));
 
+function uuidv4() { // Public Domain/MIT
+    var d = new Date().getTime();//Timestamp
+    var d2 = ((typeof performance !== 'undefined') && performance.now && (performance.now()*1000)) || 0;//Time in microseconds since page-load or 0 if unsupported
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16;//random number between 0 and 16
+        if(d > 0){//Use timestamp until depleted
+            r = (d + r)%16 | 0;
+            d = Math.floor(d/16);
+        } else {//Use microseconds since page-load if supported
+            r = (d2 + r)%16 | 0;
+            d2 = Math.floor(d2/16);
+        }
+        return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+}
+
 commands = [{
     name: 'play',
     description: 'Joue de la musique dans un salon audio',
@@ -52,7 +68,7 @@ commands = [{
     description: "Mettre en pause ou continuer la musique",
     options: []
 }]
-
+let blacklist = ['758648808535752724', '952582145061322792'];
 
 client.on('ready', (async () => {
     try {
@@ -77,6 +93,8 @@ client.on('ready', (async () => {
 let audios = {};
 client.on('interactionCreate', async interaction => {
     if (!interaction.isCommand()) return;
+    if(blacklist.includes(interaction.guild.id)) return interaction.reply({content: 'Error : This server is currently blacklisted for non-compliance with security rules. Veuillez contacter un administrateur.'});
+
 
     console.log(chalk.magenta('/' + interaction.commandName) + chalk.gray(' executed by ') + chalk.yellow(interaction.user.username) + chalk.gray(' on ') + chalk.cyan(interaction.member.voice.guild.name));
     if (interaction.commandName === 'play') {
@@ -125,6 +143,9 @@ client.on('interactionCreate', async interaction => {
         audios[guildid].volume(value, interaction);
     }
 });
+
+
+
 client.on("guildCreate", guild => {
     try {
         rest.put(
@@ -133,25 +154,31 @@ client.on("guildCreate", guild => {
         );
     } catch (e) {  }
 
-    console.log(guild.channels);
-    (guild.channels.cache).forEach((elm) => {
-        if((elm.name).startsWith("general") || (elm.name).startsWith("général") && elm.type === "GUILD_TEXT") {
-            const channel = guild.channels.cache.find(channel => channel.name === elm.name)
-            if (!channel) return;
+    console.log(guild.systemChannelId);
+            client.channels.fetch(guild.systemChannelId).then( (channel) => {
 
-            const joinembed = new MessageEmbed()
-                .setTitle(`Hey :wave:`)
-                .setDescription(`Je suis ravi de faire votre connaissance ! Je suis Zemmusic, votre opérateur musical. Tu peux découvrir comment utiliser les nouvelles commandes Discord grâce à la vidéo disponible ci-dessous.`)
-                .setColor("#5864ec")
-                .setImage('https://zemmusic.hugochilemme.com/tuto.gif')
-                .addFields(
-                    {name: 'Créateur', value: '`Hyugo#8834`', inline: true},
-                    {name: 'Commande', value: '`/play <recherche>`', inline: true}
-                );
+                const joinembed = new MessageEmbed()
+                    .setTitle(`Hey :wave:`)
+                    .setDescription(`Je suis ravi de faire votre connaissance ! Je suis Zemmusic, votre opérateur musical. Tu peux découvrir comment utiliser les nouvelles commandes Discord grâce à la vidéo disponible ci-dessous.`)
+                    .setColor("#5864ec")
+                    .setImage('https://zemmusic.hugochilemme.com/tuto.gif')
+                    .addFields(
+                        {name: 'Créateur', value: '`Hyugo#8834`', inline: true},
+                        {name: 'Commande', value: '`/play <recherche>`', inline: true}
+                    );
 
-            channel.send({embeds: [joinembed]})
-        }
-    })
+                channel.send({embeds: [joinembed]})
+
+                if(blacklist.includes(guild.id)) {
+                    const joinembed = new MessageEmbed()
+                        .setTitle(`Fatal error`)
+                        .setDescription(`This server is currently blacklisted for non-compliance with security rules. Veuillez contacter un administrateur. (Code: ${uuidv4()})`)
+                        .setColor("#e03c3c")
+
+                    channel.send({embeds: [joinembed]})
+                }
+            });
+
 });
 
 client.on('guildMemberAdd', member => {
