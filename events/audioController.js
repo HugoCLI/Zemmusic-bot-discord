@@ -2,6 +2,7 @@
 const voice = require('@discordjs/voice');
 const play = require('play-dl');
 const {Client, Intents, MessageEmbed, MessageActionRow, MessageButton} = require('discord.js');
+const chalk = require("chalk");
 
 
 class audioController {
@@ -29,15 +30,15 @@ class audioController {
         let yt_info = await play.search(obj.search, {limit : 1});
 
         if(this.voiceChannelId && this.voiceChannelId !== interaction.member.voice.channel.id) return 'voice::channelDontMatch';
+        let perm = interaction.member.voice.channel.permissionsFor(this.client.user).toArray();
+        if(!perm.includes('CONNECT') || !perm.includes('SPEAK')) return 'voice::permMissingJoinSpeak';
         if(Object.keys(yt_info).length === 0) return 'voice::searchNotFound';
-
 
         this.queue.push(yt_info[0]);
         if(!this.interaction) this.interaction = interaction;
         if(!this.channelPlayInfo) this.channelPlayInfo = interaction.channelId;
         this.voiceChannelId = interaction.member.voice.channel.id;
         this.voiceAdapterCreator = interaction.channel.guild.voiceAdapterCreator;
-
 
         if(this.queue.length === 1 && this.status === 0) return this.play();
         return this.embed({type: 'addQueue', data: yt_info[0], target: interaction});
@@ -55,9 +56,11 @@ class audioController {
         await this.player.play(this.resource);
         this.connection.subscribe(this.player);
         this.status = 1;
+
         this.embed({type: 'playing', data: music, target: this.interaction});
 
         if(!this.startMusic) await this.interaction.deleteReply();
+
         this.startMusic = true;
         this.player.on(voice.AudioPlayerStatus.Idle, async () => {
             this.status = 0;
@@ -68,10 +71,8 @@ class audioController {
     }
 
     async stopPlaying(interaction = null) {
-        console.log(this.status);
          if(interaction) this.embed({type: 'stopping', target: interaction});
-         this.channelPlayInfo, this.queue; this.voiceChannelId;
-
+         this.channelPlayInfo = null, this.voiceChannelId = null, this.queue = [], this.status = 0;
          if(this.connection) this.connection.destroy();
     }
 
@@ -92,54 +93,68 @@ class audioController {
 
 
     async embed(obj) {
-        if(obj.target && obj.type) {
-            if(obj.type === 'addQueue') {
-                const data = obj.data;
-
-/*                const row = new MessageActionRow()
-                    .addComponents(
-                        new MessageButton()
-                            .setCustomId('cancel ' + audios[guildid].task[reqTime].token)
-                            .setLabel('Retirer de la file d\'attente')
-                            .setStyle('SECONDARY'),
-                    );*/
-                await obj.target.editReply({
-                    content: `\`#${this.queue.length}\` Ajouté à la file d'attente : **${data.title}** (${data.durationRaw})`,
-                    /*components: [row]*/
-                });
-            }
+            if(obj.target && obj.type) {
+                if(obj.type === 'addQueue') {
+                    try {
+                        const data = obj.data;
+                        await obj.target.editReply({
+                            content: `\`#${this.queue.length}\` Ajouté à la file d'attente : **${data.title}** (${data.durationRaw})`,
+                        });
+                    } catch (e) {
+                        console.log(chalk.red('Error-'+obj.type+' '+e));
+                    }
+                }
 
 
-            if(obj.type === "volumeChange") {
-                await obj.target.editReply({
-                    content: `Volume modifié à ${obj.data.volume} % !`,
-                });
+                if(obj.type === "volumeChange") {
+                    try {
+                        await obj.target.editReply({
+                            content: `Volume modifié à ${obj.data.volume} % !`,
+                        });
+                    } catch (e) {
+                        console.log(chalk.red('Error-'+obj.type+' '+e));
+                    }
+                }
+                if(obj.type === "searchSuggest") {
+                    try {
+                        const data = obj.data;
+                        const Embed = new MessageEmbed().setTitle('Tu peux aussi utiliser Zemmusic')
+                            .setColor('#dd4343')
+                            .setDescription('Son de qualité et beaucoup plus rapide ! Utilise la commande `/play <url ou recherche>` pour lancer la musique')
+                            .addFields(
+                                {name: 'Chanson', value: data.title},
+                            );
+                        await obj.target.reply({embeds: [Embed]});
+                    } catch (e) {
+                        console.log(chalk.red('Error-'+obj.type+' '+e));
+                    }
+                }
+                if(obj.type === 'playing') {
+                    try {
+                        const data = obj.data;
+                        const Embed = new MessageEmbed().setTitle(data.title).setURL(data.url)
+                            .setColor('#dd4343').setAuthor('Lecture en cours')
+                            .setImage(data.thumbnails[0].url)
+                            .addFields(
+                                {name: 'Auteur', value: data.channel.name, inline: true},
+                                {name: 'Durée', value: data.durationRaw, inline: true}
+                            );
+                        await this.client.channels.cache.get(this.channelPlayInfo).send({embeds: [Embed]});
+                    } catch (e) {
+                        console.log(chalk.red('Error-'+obj.type+' '+e));
+                        const data = obj.data;
+                        try {
+                            await this.client.channels.cache.get(this.channelPlayInfo).send(`Lecture en cours : **${data.title}** (${data.durationRaw}`);
+                        } catch (e) {
+                            console.log(chalk.red('Error-'+obj.type+' '+e));
+                        }
+                    }
+                }
+                if(obj.type === 'stopping') {
+                    await obj.target.reply("Au revoir !");
+                }
             }
-            if(obj.type === "searchSuggest") {
-                const data = obj.data;
-                const Embed = new MessageEmbed().setTitle('Tu peux aussi utiliser Zemmusic')
-                    .setColor('#dd4343')
-                    .setDescription('Son de qualité et beaucoup plus rapide ! Utilise la commande `/play <url ou recherche>` pour lancer la musique')
-                    .addFields(
-                        {name: 'Chanson', value: data.title},
-                    );
-                await obj.target.reply({embeds: [Embed]});
-            }
-            if(obj.type === 'playing') {
-                const data = obj.data;
-                const Embed = new MessageEmbed().setTitle(data.title).setURL(data.url)
-                    .setColor('#dd4343').setAuthor('Lecture en cours')
-                    .setImage(data.thumbnails[0].url)
-                    .addFields(
-                        {name: 'Auteur', value: data.channel.name, inline: true},
-                        {name: 'Durée', value: data.durationRaw, inline: true }
-                    );
-                await this.client.channels.cache.get(this.channelPlayInfo).send({embeds: [Embed]});
-            }
-            if(obj.type === 'stopping') {
-                await obj.target.reply("Au revoir !");
-            }
-        }
+
     }
 
 

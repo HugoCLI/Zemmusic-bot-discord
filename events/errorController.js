@@ -8,11 +8,16 @@ const error = {
     'voice::NotConnectInVoiceChannel': "Oh bah tien, comme par hasard, un andouille qui n'est pas connectée à un vocal.",
     'voice::QueueIsEmpty': "La file d'attente est vide !",
     'voice::OutOfRangeVolume': "C'est le mot de richelieu... HUM Bouffon  ! (Entre 1 et 100)",
-    'voice::searchNotFound': "Nous n'avons rien trouvé à ce sujet"
+    'voice::searchNotFound': "Nous n'avons rien trouvé à ce sujet",
+    'voice::permMissingJoinSpeak': "Je n'est pas la permission de rejoindre/parler dans le salon audio."
 }
 class errorController {
-    constructor(errorId) {
-        if(error[errorId]) return error[errorId];
+    get(errorId) {
+        let message;
+        for (const [key, value] of Object.entries(error))
+            if(key === errorId) return value;
+
+        return 'Une erreur est survenue.';
     }
 }
 module.exports = errorController;
