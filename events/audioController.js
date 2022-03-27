@@ -79,6 +79,7 @@ class audioController {
     async skipPlaying(interaction = false) {
         if(this.status !== 1) return false;
         if(this.queue.length > 0) return this.play();
+        this.resource = null, this.stream = null;
         if(interaction) interaction.deleteReply();
         return this.stopPlaying(false);
     }
@@ -120,7 +121,7 @@ class audioController {
                     try {
                         const data = obj.data;
                         const Embed = new MessageEmbed().setTitle('Tu peux aussi utiliser Zemmusic')
-                            .setColor('#dd4343')
+                            .setColor('#5864ec')
                             .setDescription('Son de qualité et beaucoup plus rapide ! Utilise la commande `/play <url ou recherche>` pour lancer la musique')
                             .addFields(
                                 {name: 'Chanson', value: data.title},
@@ -134,7 +135,7 @@ class audioController {
                     try {
                         const data = obj.data;
                         const Embed = new MessageEmbed().setTitle(data.title).setURL(data.url)
-                            .setColor('#dd4343').setAuthor('Lecture en cours')
+                            .setColor('#5864ec').setAuthor('Lecture en cours')
                             .setImage(data.thumbnails[0].url)
                             .addFields(
                                 {name: 'Auteur', value: data.channel.name, inline: true},

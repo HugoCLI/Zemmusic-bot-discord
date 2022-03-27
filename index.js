@@ -142,7 +142,7 @@ client.on("guildCreate", guild => {
             const joinembed = new MessageEmbed()
                 .setTitle(`Hey :wave:`)
                 .setDescription(`Je suis ravi de faire votre connaissance ! Je suis Zemmusic, votre opérateur musical. Tu peux découvrir comment utiliser les nouvelles commandes Discord grâce à la vidéo disponible ci-dessous.`)
-                .setColor("#20bc54")
+                .setColor("#5864ec")
                 .setImage('https://zemmusic.hugochilemme.com/tuto.gif')
                 .addFields(
                     {name: 'Créateur', value: '`Hyugo#8834`', inline: true},
@@ -163,7 +163,7 @@ client.on('guildMemberAdd', member => {
            const joinembed = new MessageEmbed()
                .setTitle(`${member.user.username} à rejoint le serveur`)
                .setDescription(`Le serveur compte désormais **${elm.guild.memberCount}** membres.`)
-               .setColor("#20bc54")
+               .setColor("#5864ec")
 
            channel.send({embeds: [joinembed]})
        }
