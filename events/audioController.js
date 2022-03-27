@@ -77,8 +77,9 @@ class audioController {
     }
 
     async skipPlaying(interaction = false) {
-        if(this.status === 1) return false;
+        if(this.status !== 1) return false;
         if(this.queue.length > 0) return this.play();
+        if(interaction) interaction.deleteReply();
         return this.stopPlaying(false);
     }
 
